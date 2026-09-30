@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-crimson: #8B0000;
+    --color-maroon: #3B1111;
+    --color-vermilion: #B71C1C;
+    --color-gold: #D4AF37;
+    --color-gold-light: #F3E5AB;
+    --color-cream: #FFF8ED;
+    --color-cream-dark: #FAF0DB;
+  }
+
+  body {
+    background-color: #FFF8ED;
+    color: #3B1111;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Typography classes */
+.font-serif-title {
+  font-family: 'Cinzel Decorative', 'Cinzel', serif;
+}
+
+.font-serif-heading {
+  font-family: 'Cinzel', serif;
+}
+
+.font-gujarati {
+  font-family: 'Baloo Bhai 2', 'Noto Sans Gujarati', sans-serif;
+}
+
+.font-hindi {
+  font-family: 'Noto Sans Devanagari', 'Rozha One', sans-serif;
+}
+
+.font-display {
+  font-family: 'Yatra One', 'Cinzel Decorative', serif;
+}
+
+/* Custom background paper texture & gradients */
+.bg-cream-paper {
+  background-color: #FFF8ED;
+  background-image: radial-gradient(#D4AF37 0.75px, transparent 0.75px), radial-gradient(#D4AF37 0.75px, #FFF8ED 0.75px);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+  background-opacity: 0.05;
+}
+
+.bg-crimson-royal {
+  background: linear-gradient(135deg, #4A0000 0%, #8B0000 50%, #2D0000 100%);
+}
+
+.bg-gold-gradient {
+  background: linear-gradient(135deg, #BF953F 0%, #FCF6BA 25%, #B38728 50%, #FBF5B7 75%, #AA771C 100%);
+}
+
+.text-gold-gradient {
+  background: linear-gradient(135deg, #D4AF37 0%, #FFF3B0 30%, #AA771C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Custom Ornate Border */
+.border-gold-ornate {
+  border: 2px solid #D4AF37;
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+}
+
+.card-devotional-shadow {
+  box-shadow: 0 10px 30px -5px rgba(139, 0, 0, 0.15), 0 4px 10px -2px rgba(212, 175, 55, 0.1);
+}
+
+/* Animations */
+@keyframes diyaGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(255, 165, 0, 0.8)) drop-shadow(0 0 18px rgba(255, 215, 0, 0.6));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(255, 140, 0, 0.95)) drop-shadow(0 0 25px rgba(255, 215, 0, 0.8));
+    transform: scale(1.04);
+  }
+}
+
+.animate-diya-glow {
+  animation: diyaGlow 3s ease-in-out infinite;
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 40s linear infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFF8ED;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C5A059;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8B0000;
+}
