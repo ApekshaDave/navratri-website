@@ -110,7 +110,7 @@ export interface UIStrings {
 
 export const TRANSLATIONS: Record<Language, UIStrings> = {
   gu: {
-    brandName: 'નવસ્વર',
+    brandName: 'ગરબારાસ',
     tagline: 'નવરાત્રી ગરબા સાહિત્ય',
     nav: {
       home: 'મુખ્ય પૃષ્ઠ',
@@ -224,7 +224,7 @@ export const TRANSLATIONS: Record<Language, UIStrings> = {
     },
   },
   hi: {
-    brandName: 'नवस्वर',
+    brandName: 'गरबारास',
     tagline: 'नवरात्रि गरबा साहित्य',
     nav: {
       home: 'मुख्य पृष्ठ',
@@ -338,7 +338,7 @@ export const TRANSLATIONS: Record<Language, UIStrings> = {
     },
   },
   en: {
-    brandName: 'NavSwar',
+    brandName: 'Garbaraas',
     tagline: 'Navratri Garba Literature',
     nav: {
       home: 'Home',
