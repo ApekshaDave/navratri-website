@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { type RequestHandler, Router } from 'express';
 import multer from 'multer';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { unlink } from 'node:fs/promises';
@@ -107,7 +107,9 @@ commentsRouter.post('/comments/:id/like', likeLimiter, async (req, res) => {
   res.json({ likes: rows[0].likes_count });
 });
 
-commentsRouter.delete('/comments/:id', writeLimiter, async (req, res) => {
+// MilesWeb's LiteSpeed front end rejects the DELETE method with its own 403,
+// so the client deletes via POST; DELETE stays for hosts that allow it.
+const deleteHandler: RequestHandler<{ id: string }> = async (req, res) => {
   const token = req.get('x-delete-token') ?? '';
   const [rows] = await pool.query<RowDataPacket[]>(
     'SELECT delete_token_hash, audio_file FROM audio_comments WHERE id = ?',
@@ -131,4 +133,7 @@ commentsRouter.delete('/comments/:id', writeLimiter, async (req, res) => {
     await unlink(path.join(config.uploadDir, path.basename(row.audio_file))).catch(() => {});
   }
   res.status(204).end();
-});
+};
+
+commentsRouter.post('/comments/:id/delete', writeLimiter, deleteHandler);
+commentsRouter.delete('/comments/:id', writeLimiter, deleteHandler);

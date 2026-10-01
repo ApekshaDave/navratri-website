@@ -126,8 +126,9 @@ export async function setCommentLiked(commentId: string, liked: boolean): Promis
 
 export async function deleteComment(commentId: string): Promise<void> {
   const tokens = readStore<Record<string, string>>(TOKENS_KEY, {});
-  await request<void>(`/comments/${encodeURIComponent(commentId)}`, {
-    method: 'DELETE',
+  // POST, not DELETE: the MilesWeb web server blocks the DELETE method
+  await request<void>(`/comments/${encodeURIComponent(commentId)}/delete`, {
+    method: 'POST',
     headers: { 'X-Delete-Token': tokens[commentId] ?? '' },
   });
   delete tokens[commentId];
