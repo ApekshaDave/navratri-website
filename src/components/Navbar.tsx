@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Heart, Globe, Menu, X, BookOpen, Music, Info, LogIn, LogOut } from 'lucide-react';
+import { Search, Heart, Globe, Menu, X, BookOpen, Music, Info, LogIn, LogOut, Library } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import type { Language } from '../types';
@@ -27,6 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navItems = [
     { id: 'home', label: t.nav.home, icon: Music },
     { id: 'garbas', label: t.nav.garbas, icon: BookOpen },
+    { id: 'library', label: t.nav.library, icon: Library },
     { id: 'favorites', label: t.nav.favorites, icon: Heart, badge: favoritesCount },
     { id: 'about', label: t.nav.about, icon: Info },
   ];

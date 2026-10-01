@@ -1,12 +1,14 @@
 import express, { type ErrorRequestHandler, Router } from 'express';
+import compression from 'compression';
 import multer from 'multer';
 import { mkdirSync } from 'node:fs';
 import { config } from './config.ts';
 import { pool } from './db.ts';
 import { ValidationError } from './validate.ts';
-import { importPendingNeonExport, runMigrations } from './migrations.ts';
+import { importPendingData, runMigrations } from './migrations.ts';
 import { garbasRouter } from './routes/garbas.ts';
 import { commentsRouter } from './routes/comments.ts';
+import { invalidateLibraryCache, songsRouter } from './routes/songs.ts';
 
 mkdirSync(config.uploadDir, { recursive: true });
 
@@ -14,6 +16,8 @@ const app = express();
 app.disable('x-powered-by');
 // Behind Apache/Passenger on cPanel; needed so rate limiting sees the real client IP
 app.set('trust proxy', 1);
+// Song lists are large JSON (the ~500 garba list is ~450KB raw, ~60KB gzipped)
+app.use(compression());
 app.use(express.json({ limit: '300kb' }));
 
 const api = Router();
@@ -39,6 +43,7 @@ api.use(
     setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
   }),
 );
+api.use(songsRouter);
 api.use(garbasRouter);
 api.use(commentsRouter);
 
@@ -65,12 +70,11 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 };
 app.use(errorHandler);
 
-// No shell access on the host, so schema setup and the one-time Neon import run at boot.
-// A database failure is logged but doesn't stop the server; /api/health will report it.
+// No shell access on the host, so schema setup runs at boot. A database failure is logged
+// but doesn't stop the server; /api/health will report it.
 async function start() {
   try {
     await runMigrations();
-    await importPendingNeonExport();
   } catch (err) {
     console.error('Startup migration failed:', err);
   }
@@ -78,6 +82,11 @@ async function start() {
   app.listen(config.port, () => {
     console.log(`NavSwar API listening on port ${config.port}`);
   });
+
+  // A song-library upload can take a while to import, so do it after we're serving requests
+  importPendingData()
+    .then((imported) => imported && invalidateLibraryCache())
+    .catch((err) => console.error('Library import failed:', err));
 }
 
 start();

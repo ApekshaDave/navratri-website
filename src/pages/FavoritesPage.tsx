@@ -1,13 +1,13 @@
 import React from 'react';
 import { Heart } from 'lucide-react';
 import { GarbaCard } from '../components/GarbaCard';
-import type { Garba } from '../types';
+import type { GarbaSummary } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 
 interface FavoritesPageProps {
-  garbas: Garba[];
+  garbas: GarbaSummary[];
   favoriteIds: string[];
-  onSelectGarba: (garba: Garba, tab?: 'lyrics' | 'audio') => void;
+  onSelectGarba: (garba: GarbaSummary, tab?: 'lyrics' | 'audio') => void;
   isFavorite: (id: string) => boolean;
   onToggleFavorite: (id: string, e: React.MouseEvent) => void;
   onNavigateToGarbas: () => void;

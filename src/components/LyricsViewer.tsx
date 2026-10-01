@@ -6,6 +6,7 @@ import { LyricsLanguageTabs } from './LyricsLanguageTabs';
 import { CommunityAudioComments } from './CommunityAudioComments';
 import { SourceAttribution } from './SourceAttribution';
 import { ShareModal } from './ShareModal';
+import { prettifySlug, sectionLabel } from '../data/library';
 
 interface LyricsViewerProps {
   garba: Garba;
@@ -27,6 +28,8 @@ export const LyricsViewer: React.FC<LyricsViewerProps> = ({
   // Active primary title based on current language
   const primaryTitle = garba.title[language] || garba.title.gu;
   const secondaryTitle = language === 'en' ? garba.title.gu : garba.title.en;
+  // Songs from the wider library (bhajans, ragas, stavans...) aren't Maa Amba garbas
+  const isLibrarySong = !!garba.collection && garba.collection !== 'navratri';
 
   return (
     <div className="min-h-screen bg-[#800000] py-8 md:py-12 px-4 sm:px-6 lg:px-8 text-[#FFF8ED]">
@@ -45,7 +48,7 @@ export const LyricsViewer: React.FC<LyricsViewerProps> = ({
           <div className="flex items-center gap-2">
             {/* Category Badge */}
             <span className="text-xs font-bold uppercase tracking-wider bg-[#600000] text-[#FFF8ED] px-3 py-1 rounded-full border border-[#D4AF37]">
-              🌺 {garba.category} Garba
+              🌺 {isLibrarySong ? sectionLabel(garba.collection, language) : `${garba.category} Garba`}
             </span>
           </div>
         </div>
@@ -63,7 +66,13 @@ export const LyricsViewer: React.FC<LyricsViewerProps> = ({
           <div className="text-center space-y-4 pb-8 border-b-2 border-[#D4AF37]/30 relative z-10">
             <div className="inline-flex items-center gap-2 bg-[#D4AF37]/20 border border-[#D4AF37] px-3.5 py-1.5 rounded-full text-xs font-bold text-[#D4AF37]">
               <span>🪔</span>
-              <span>{language === 'gu' ? 'મા અંબા ગરબા સાહિત્ય' : language === 'hi' ? 'मां अंबा गरबा साहित्य' : 'Maa Amba Garba Lyrics'}</span>
+              <span>
+                {isLibrarySong
+                  ? [sectionLabel(garba.collection, language), garba.subcollection && prettifySlug(garba.subcollection)]
+                      .filter(Boolean)
+                      .join(' · ')
+                  : language === 'gu' ? 'મા અંબા ગરબા સાહિત્ય' : language === 'hi' ? 'मां अंबा गरबा साहित्य' : 'Maa Amba Garba Lyrics'}
+              </span>
               <span>🪔</span>
             </div>
 

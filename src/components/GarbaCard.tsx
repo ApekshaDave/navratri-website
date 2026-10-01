@@ -1,11 +1,11 @@
 import React from 'react';
 import { BookOpen, Mic, Heart } from 'lucide-react';
-import type { Garba } from '../types';
+import type { GarbaSummary } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 
 interface GarbaCardProps {
-  garba: Garba;
-  onSelect: (garba: Garba, defaultTab?: 'lyrics' | 'audio') => void;
+  garba: GarbaSummary;
+  onSelect: (garba: GarbaSummary, defaultTab?: 'lyrics' | 'audio') => void;
   isFavorite: boolean;
   onToggleFavorite: (id: string, e: React.MouseEvent) => void;
 }
@@ -28,6 +28,7 @@ export const GarbaCard: React.FC<GarbaCardProps> = ({
         <img
           src={garba.artworkUrl}
           alt={garba.title.en}
+          loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#3B1111] via-transparent to-black/30"></div>

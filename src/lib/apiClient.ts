@@ -1,4 +1,4 @@
-import type { Garba } from '../types';
+import type { Garba, GarbaSummary, LibrarySection } from '../types';
 
 // Same-origin API on MilesWeb (Vite proxies /api to the local server in dev)
 const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
@@ -71,8 +71,33 @@ function toAudioComment(c: ApiComment): AudioComment {
   };
 }
 
-export async function fetchGarbas(): Promise<Garba[]> {
-  return request<Garba[]>('/garbas');
+export interface SongPage {
+  items: GarbaSummary[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export async function fetchLibrary(): Promise<LibrarySection[]> {
+  return request<LibrarySection[]>('/library');
+}
+
+export async function fetchSongs(
+  params: { collection?: string; sub?: string; q?: string; ids?: string[]; page?: number; limit?: number },
+  signal?: AbortSignal,
+): Promise<SongPage> {
+  const qs = new URLSearchParams();
+  if (params.collection) qs.set('collection', params.collection);
+  if (params.sub) qs.set('sub', params.sub);
+  if (params.q) qs.set('q', params.q);
+  if (params.ids?.length) qs.set('ids', params.ids.join(','));
+  if (params.page) qs.set('page', String(params.page));
+  if (params.limit) qs.set('limit', String(params.limit));
+  return request<SongPage>(`/songs?${qs}`, { signal });
+}
+
+export async function fetchSong(id: string): Promise<Garba> {
+  return request<Garba>(`/songs/${encodeURIComponent(id)}`);
 }
 
 export async function postGarba(garba: Garba): Promise<Garba> {

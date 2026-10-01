@@ -1,12 +1,12 @@
 import React, { useRef } from 'react';
 import { ChevronLeft, ChevronRight, Music2, Flame, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import type { Garba } from '../types';
+import type { GarbaSummary } from '../types';
 
 interface PopularSongsCarouselProps {
-  garbas: Garba[];
-  selectedGarba: Garba;
-  onSelectGarba: (garba: Garba) => void;
+  garbas: GarbaSummary[];
+  selectedGarba: GarbaSummary;
+  onSelectGarba: (garba: GarbaSummary) => void;
   onViewAll: () => void;
 }
 

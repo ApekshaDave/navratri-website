@@ -6,6 +6,7 @@ export interface UIStrings {
   nav: {
     home: string;
     garbas: string;
+    library: string;
     lyrics: string;
     favorites: string;
     about: string;
@@ -114,6 +115,7 @@ export const TRANSLATIONS: Record<Language, UIStrings> = {
     nav: {
       home: 'મુખ્ય પૃષ્ઠ',
       garbas: 'ગરબા',
+      library: 'ભજન સંગ્રહ',
       lyrics: 'સાહિત્ય',
       favorites: 'પસંદગીદા',
       about: 'અમારા બારામાં',
@@ -227,6 +229,7 @@ export const TRANSLATIONS: Record<Language, UIStrings> = {
     nav: {
       home: 'मुख्य पृष्ठ',
       garbas: 'गरबा',
+      library: 'भजन संग्रह',
       lyrics: 'साहित्य',
       favorites: 'पसंदीदा',
       about: 'हमारे बारे में',
@@ -340,6 +343,7 @@ export const TRANSLATIONS: Record<Language, UIStrings> = {
     nav: {
       home: 'Home',
       garbas: 'Garbas',
+      library: 'Library',
       lyrics: 'Lyrics',
       favorites: 'Favorites',
       about: 'About Us',

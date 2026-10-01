@@ -13,8 +13,8 @@ Browser ──► https://<domain>/          public_html/        React build (di
 - GitHub Actions (`.github/workflows/deploy.yml`) builds and uploads over **FTPS** on every push to
   `main` or `milesweb-migration`. Uploading a new `tmp/restart.txt` makes Passenger restart the app.
 - SSH is not available on this account, so the API sets itself up when it starts: it creates any
-  missing tables, syncs the built-in Garbas from `src/data/garbas.ts`, and imports a Neon export if
-  one has been uploaded.
+  missing tables, syncs the built-in Garbas from `src/data/garbas.ts`, and imports a song-library
+  file if one has been uploaded.
 
 ## One-time server setup
 
@@ -87,21 +87,27 @@ Requires **admin** access to the repo: Settings → **Environments** → New env
 4. **Node app**: Setup Node.js App → edit the app → Application URL `garbaraas.in` / `api`.
 5. `www.garbaraas.in` redirects to `https://garbaraas.in` via `public/.htaccess`.
 
-## Migrating data from Neon (one time)
+## Importing the song library
 
-1. Reset the Neon password, put the new connection string in your local `.env` as `NEON_DATABASE_URL`.
-2. `npm run db:export-neon` → creates `migration-data/garbas.json` and `audio_comments.json`.
-3. Upload the `migration-data` folder into `~/navswar-api/` with File Manager (zip it, upload, extract).
-4. In cPanel → **Setup Node.js App**, click **Restart**. On startup the API imports the files and
-   renames the folder to `migration-data.imported-<timestamp>` so it won't import twice.
-5. Check that the data appears on the site, then delete that folder and your local `migration-data`.
-   It contains users' comments.
+The ~4,400 songs (garbas, bhajans, ragas, stavans...) come from the scraped LokDayro data in
+`output/` (not committed to git). To load or refresh them:
+
+1. `npm run library:build` → creates `migration-data/library.ndjson.gz` (~4 MB).
+2. In File Manager, create `navswar-api/migration-data/` if needed and upload `library.ndjson.gz` into it.
+3. Restart the app (Setup Node.js App → **Restart**). It starts serving immediately and imports in the
+   background (a few seconds), then renames the file to `library.ndjson.gz.imported-<timestamp>`.
+4. Check the **Library** tab, then delete the `.imported-…` file.
+
+Re-importing is safe: songs are matched by id (derived from the source URL), so existing songs are
+updated rather than duplicated, and comments on them are kept.
 
 ## Local development
 
 ```bash
 cp .env.example .env      # point DB_* at a local MySQL/MariaDB
 npm run db:migrate        # create tables + load built-in Garbas
+npm run library:build     # optional: build the song library file from output/
+node server/src/migrate.ts --import migration-data/library.ndjson.gz
 npm run dev:server        # API on :3001
 npm run dev               # Vite on :5173, proxies /api to :3001
 ```

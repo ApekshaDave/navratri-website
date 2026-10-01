@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, BookOpen, Play } from 'lucide-react';
-import type { Garba } from '../types';
+import type { Garba, GarbaSummary } from '../types';
+import { fetchSongs } from '../lib/apiClient';
 import { useLanguage } from '../context/LanguageContext';
 
 interface SearchBarModalProps {
-  garbas: Garba[];
+  garbas: GarbaSummary[];
   isOpen: boolean;
   onClose: () => void;
-  onSelectGarba: (garba: Garba, tab?: 'lyrics' | 'audio') => void;
+  onSelectGarba: (garba: GarbaSummary, tab?: 'lyrics' | 'audio') => void;
 }
 
 export const SearchBarModal: React.FC<SearchBarModalProps> = ({
@@ -42,9 +43,36 @@ export const SearchBarModal: React.FC<SearchBarModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Search the whole song library on the server (debounced); local results show instantly
+  const [remoteResults, setRemoteResults] = useState<GarbaSummary[]>([]);
+  const [remoteTotal, setRemoteTotal] = useState(0);
+  useEffect(() => {
+    const q = query.trim();
+    if (!isOpen || q.length < 2) {
+      setRemoteResults([]);
+      setRemoteTotal(0);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      fetchSongs({ q, limit: 25 }, controller.signal)
+        .then((res) => {
+          setRemoteResults(res.items);
+          setRemoteTotal(res.total);
+        })
+        .catch((err) => {
+          if (err.name !== 'AbortError') console.warn('Library search failed:', err);
+        });
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, isOpen]);
+
   if (!isOpen) return null;
 
-  const filteredGarbas = query.trim()
+  const localMatches = query.trim()
     ? garbas.filter((g) => {
         const q = query.toLowerCase();
         return (
@@ -54,10 +82,14 @@ export const SearchBarModal: React.FC<SearchBarModalProps> = ({
           g.category.toLowerCase().includes(q) ||
           g.deity.toLowerCase().includes(q) ||
           g.tags.some((t) => t.toLowerCase().includes(q)) ||
-          g.lyrics.gu.some((l) => l.toLowerCase().includes(q))
+          ('lyrics' in g && (g as Garba).lyrics.gu.some((l) => l.toLowerCase().includes(q)))
         );
       })
     : garbas.slice(0, 5); // Show top 5 when empty
+
+  const localIds = new Set(localMatches.map((g) => g.id));
+  const filteredGarbas = [...localMatches, ...remoteResults.filter((g) => !localIds.has(g.id))];
+  const resultCount = Math.max(filteredGarbas.length, remoteTotal);
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
@@ -85,7 +117,11 @@ export const SearchBarModal: React.FC<SearchBarModalProps> = ({
         {/* Results List */}
         <div className="p-4 overflow-y-auto space-y-3 flex-1">
           <div className="flex items-center justify-between text-xs text-[#8B0000] font-bold uppercase tracking-wider px-2">
-            <span>{query ? `Search Results (${filteredGarbas.length})` : 'Popular Garbas'}</span>
+            <span>
+              {query
+                ? `Search Results (${resultCount > filteredGarbas.length ? `${filteredGarbas.length} of ${resultCount}` : resultCount})`
+                : 'Popular Garbas'}
+            </span>
             <span className="text-[10px] text-[#3B1111]/60 font-sans">Press ESC to close</span>
           </div>
 
@@ -126,7 +162,7 @@ export const SearchBarModal: React.FC<SearchBarModalProps> = ({
                       <BookOpen className="w-3.5 h-3.5 text-[#D4AF37]" />
                       <span>Lyrics</span>
                     </button>
-                    {garba.audioReference && (
+                    {'audioReference' in garba && (garba as Garba).audioReference && (
                       <button
                         onClick={() => {
                           onSelectGarba(garba, 'audio');

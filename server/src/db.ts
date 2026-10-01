@@ -13,6 +13,19 @@ export function parseJson<T>(value: unknown): T {
   return (typeof value === 'string' ? JSON.parse(value) : value) as T;
 }
 
+// Song-library columns, added to `garbas` by runMigrations() when missing
+// (works for both fresh installs and the table created before the library existed)
+export const SCHEMA_COLUMNS: Record<string, string> = {
+  collection: 'VARCHAR(80) NULL',
+  subcollection: 'VARCHAR(120) NULL',
+  sort_order: 'INT NOT NULL DEFAULT 0',
+  search_text: 'TEXT NULL',
+};
+
+export const SCHEMA_INDEXES: Record<string, string> = {
+  idx_garbas_collection: '(collection, subcollection, sort_order)',
+};
+
 export const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS garbas (
     id VARCHAR(120) PRIMARY KEY,
