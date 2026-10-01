@@ -19,8 +19,16 @@ app.use(express.json({ limit: '300kb' }));
 const api = Router();
 
 api.get('/health', async (_req, res) => {
-  await pool.query('SELECT 1');
-  res.json({ ok: true });
+  try {
+    await pool.query('SELECT 1');
+    res.json({ ok: true });
+  } catch (err) {
+    // Only the error code (e.g. ER_ACCESS_DENIED_ERROR, ECONNREFUSED) - never the message,
+    // which can include usernames or hostnames
+    const code = (err as { code?: string }).code ?? (err instanceof AggregateError ? 'CONNECTION_FAILED' : 'UNKNOWN');
+    console.error('Health check DB error:', err);
+    res.status(503).json({ ok: false, db: code });
+  }
 });
 
 api.use(
