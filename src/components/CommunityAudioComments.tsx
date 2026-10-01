@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Heart, Mic, Square, Upload, Play, Pause, Trophy, Trash2, Send, Music2, Sparkles, CheckCircle2 } from 'lucide-react';
 import {
   type AudioComment,
-  getCommentsForGarba,
-  addAudioComment,
-  toggleLikeComment,
-  deleteAudioComment,
-} from '../utils/audioCommentsStorage';
-import { fetchNeonComments, postNeonComment, deleteNeonComment } from '../lib/neonClient';
+  fetchComments,
+  postComment,
+  setCommentLiked,
+  deleteComment,
+} from '../lib/apiClient';
 import { useLanguage } from '../context/LanguageContext';
+
+const sortByLikes = (list: AudioComment[]) =>
+  [...list].sort((a, b) => b.likes - a.likes || b.timestamp - a.timestamp);
 
 interface CommunityAudioCommentsProps {
   garbaId: string;
@@ -27,8 +29,9 @@ export const CommunityAudioComments: React.FC<CommunityAudioCommentsProps> = ({
   // Audio Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
+  const [attachedAudio, setAttachedAudio] = useState<Blob | null>(null);
   const [uploadedAudioName, setUploadedAudioName] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Audio Playback State for comments
   const [playingCommentId, setPlayingCommentId] = useState<string | null>(null);
@@ -40,26 +43,16 @@ export const CommunityAudioComments: React.FC<CommunityAudioCommentsProps> = ({
 
   useEffect(() => {
     loadComments();
-    setRecordedAudioUrl(null);
+    setAttachedAudio(null);
     setUploadedAudioName(null);
   }, [garbaId]);
 
   const loadComments = async () => {
-    const localList = getCommentsForGarba(garbaId);
-    setComments(localList);
-
-    // Fetch live database comments from Neon REST API
-    const remoteList = await fetchNeonComments(garbaId);
-    if (remoteList.length > 0) {
-      setComments((prev) => {
-        const merged = [...remoteList];
-        prev.forEach((localItem) => {
-          if (!merged.some((m) => m.id === localItem.id)) {
-            merged.push(localItem);
-          }
-        });
-        return merged.sort((a, b) => b.likes - a.likes || b.timestamp - a.timestamp);
-      });
+    try {
+      setComments(sortByLikes(await fetchComments(garbaId)));
+    } catch (err) {
+      console.warn('Failed to load community comments:', err);
+      setComments([]);
     }
   };
 
@@ -78,14 +71,10 @@ export const CommunityAudioComments: React.FC<CommunityAudioCommentsProps> = ({
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-          const base64Audio = reader.result as string;
-          setRecordedAudioUrl(base64Audio);
-          setUploadedAudioName('Voice_Recording.webm');
-        };
+        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        setAttachedAudio(audioBlob);
+        setUploadedAudioName(mimeType.includes('mp4') ? 'Voice_Recording.m4a' : 'Voice_Recording.webm');
         // Stop stream tracks
         stream.getTracks().forEach((track) => track.stop());
       };
@@ -124,45 +113,53 @@ export const CommunityAudioComments: React.FC<CommunityAudioCommentsProps> = ({
       return;
     }
 
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onloadend = () => {
-      setRecordedAudioUrl(reader.result as string);
-      setUploadedAudioName(file.name);
-    };
+    setAttachedAudio(file);
+    setUploadedAudioName(file.name);
+    setRecordingSeconds(0);
   };
 
   // Submit New Comment with Voice Reference
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentText.trim() && !recordedAudioUrl) {
+    if (isSubmitting) return;
+    if (!commentText.trim() && !attachedAudio) {
       alert('Please enter a comment or record/upload an audio reference.');
       return;
     }
 
-    const newComment = addAudioComment(
-      garbaId,
-      userName || 'Devotee Singer',
-      commentText,
-      recordedAudioUrl || undefined,
-      uploadedAudioName || undefined,
-      recordingSeconds || undefined
-    );
-
-    // Save directly to Neon PostgreSQL database
-    await postNeonComment(newComment);
-
-    setCommentText('');
-    setRecordedAudioUrl(null);
-    setUploadedAudioName(null);
-    setRecordingSeconds(0);
-    loadComments();
+    setIsSubmitting(true);
+    try {
+      const created = await postComment(garbaId, {
+        authorName: userName || 'Devotee Singer',
+        commentText,
+        audio: attachedAudio || undefined,
+        audioName: uploadedAudioName || undefined,
+        audioDuration: recordingSeconds || undefined,
+      });
+      setComments((prev) => sortByLikes([created, ...prev]));
+      setCommentText('');
+      setAttachedAudio(null);
+      setUploadedAudioName(null);
+      setRecordingSeconds(0);
+    } catch (err) {
+      alert(`Could not post your comment: ${(err as Error).message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Toggle Like & Re-rank
-  const handleLike = (commentId: string) => {
-    const updated = toggleLikeComment(garbaId, commentId);
-    setComments(updated);
+  const handleLike = async (commentId: string) => {
+    const target = comments.find((c) => c.id === commentId);
+    if (!target) return;
+    try {
+      const likes = await setCommentLiked(commentId, !target.userLiked);
+      setComments((prev) =>
+        sortByLikes(prev.map((c) => (c.id === commentId ? { ...c, likes, userLiked: !target.userLiked } : c)))
+      );
+    } catch (err) {
+      alert((err as Error).message);
+    }
   };
 
   // Play / Pause Comment Audio
@@ -192,9 +189,12 @@ export const CommunityAudioComments: React.FC<CommunityAudioCommentsProps> = ({
   // Delete Comment (Owner Verified)
   const handleDelete = async (commentId: string) => {
     if (confirm('Delete your audio comment?')) {
-      const updated = deleteAudioComment(garbaId, commentId);
-      setComments(updated);
-      await deleteNeonComment(commentId);
+      try {
+        await deleteComment(commentId);
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+      } catch (err) {
+        alert(`Could not delete comment: ${(err as Error).message}`);
+      }
     }
   };
 
@@ -299,7 +299,7 @@ export const CommunityAudioComments: React.FC<CommunityAudioCommentsProps> = ({
         </div>
 
         {/* Audio Attached Status Indicator */}
-        {recordedAudioUrl && (
+        {attachedAudio && (
           <div className="flex items-center justify-between bg-[#300000] border border-[#D4AF37]/50 px-3 py-2 rounded-xl text-xs text-[#D4AF37]">
             <span className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -308,7 +308,7 @@ export const CommunityAudioComments: React.FC<CommunityAudioCommentsProps> = ({
             <button
               type="button"
               onClick={() => {
-                setRecordedAudioUrl(null);
+                setAttachedAudio(null);
                 setUploadedAudioName(null);
               }}
               className="text-[10px] text-red-300 hover:underline font-bold"
@@ -330,10 +330,11 @@ export const CommunityAudioComments: React.FC<CommunityAudioCommentsProps> = ({
         <div className="flex justify-end">
           <button
             type="submit"
-            className="flex items-center gap-2 bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-[#3B1111] font-extrabold px-6 py-2.5 rounded-xl shadow-lg hover:brightness-110 transition-all text-xs"
+            disabled={isSubmitting}
+            className="flex items-center gap-2 bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-[#3B1111] font-extrabold px-6 py-2.5 rounded-xl shadow-lg hover:brightness-110 transition-all text-xs disabled:opacity-60"
           >
             <Send className="w-4 h-4" />
-            <span>Post Audio Comment</span>
+            <span>{isSubmitting ? 'Posting...' : 'Post Audio Comment'}</span>
           </button>
         </div>
       </form>
@@ -404,10 +405,10 @@ export const CommunityAudioComments: React.FC<CommunityAudioCommentsProps> = ({
                 </div>
 
                 {/* Audio Reference Player Bar if audio attached */}
-                {comment.audioDataUrl && (
+                {comment.audioUrl && (
                   <div className="flex items-center gap-3 bg-[#3D0000] border border-[#D4AF37]/40 p-3 rounded-xl">
                     <button
-                      onClick={() => togglePlayCommentAudio(comment.id, comment.audioDataUrl)}
+                      onClick={() => togglePlayCommentAudio(comment.id, comment.audioUrl)}
                       className="w-10 h-10 rounded-full bg-[#D4AF37] text-[#3B1111] flex items-center justify-center font-bold shadow-md hover:scale-105 transition-transform"
                     >
                       {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}

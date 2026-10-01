@@ -14,9 +14,7 @@ import { AboutPage } from './pages/AboutPage';
 import { GARBAS_DATA } from './data/garbas';
 import type { Garba } from './types';
 import { useFavorites } from './hooks/useFavorites';
-import { postNeonGarba, fetchNeonGarbas } from './lib/neonClient';
-
-const CUSTOM_GARBAS_STORAGE_KEY = 'navswar_user_custom_garbas_v1';
+import { fetchGarbas, postGarba } from './lib/apiClient';
 
 export const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('home');
@@ -31,44 +29,16 @@ export const AppContent: React.FC = () => {
   const { isAuthenticated, openAuthModal } = useAuth();
   const { favorites, toggleFavorite, isFavorite } = useFavorites();
 
-  // Load User Custom Garbas on Mount and sync with Neon PostgreSQL
+  // Load community-submitted Garbas from the API; built-in ones ship with the bundle
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(CUSTOM_GARBAS_STORAGE_KEY);
-      if (saved) {
-        setUserGarbas(JSON.parse(saved));
-      }
-    } catch (e) {
-      console.error('Failed to load user custom Garbas from local storage:', e);
-    }
-
-    // Async sync with Neon PostgreSQL database
-    fetchNeonGarbas().then((remoteData) => {
-      if (Array.isArray(remoteData) && remoteData.length > 0) {
-        const parsedNeon: Garba[] = remoteData.map((item: any) => ({
-          id: item.id,
-          title: typeof item.title === 'string' ? JSON.parse(item.title) : item.title,
-          category: item.category,
-          deity: item.deity,
-          isFeatured: item.is_featured,
-          isPopular: item.is_popular,
-          tags: typeof item.tags === 'string' ? JSON.parse(item.tags) : item.tags,
-          description: typeof item.description === 'string' ? JSON.parse(item.description) : item.description,
-          artworkUrl: item.artwork_url,
-          lyricsSource: typeof item.lyrics_source === 'string' ? JSON.parse(item.lyrics_source) : item.lyrics_source,
-          audioReference: typeof item.audio_reference === 'string' ? JSON.parse(item.audio_reference) : item.audio_reference,
-          lyrics: typeof item.lyrics === 'string' ? JSON.parse(item.lyrics) : item.lyrics,
-        }));
-
-        setUserGarbas((prev) => {
-          const existingIds = new Set([...GARBAS_DATA.map((g) => g.id), ...prev.map((g) => g.id)]);
-          const newRemote = parsedNeon.filter((g) => !existingIds.has(g.id));
-          return [...newRemote, ...prev];
-        });
-      }
-    }).catch((err) => {
-      console.warn('Neon DB fetch failed, using local garba collection fallback:', err);
-    });
+    fetchGarbas()
+      .then((remote) => {
+        const builtinIds = new Set(GARBAS_DATA.map((g) => g.id));
+        setUserGarbas(remote.filter((g) => !builtinIds.has(g.id)));
+      })
+      .catch((err) => {
+        console.warn('Garba API fetch failed, showing built-in collection only:', err);
+      });
   }, []);
 
   const allGarbas = [...GARBAS_DATA, ...userGarbas];
@@ -95,12 +65,16 @@ export const AppContent: React.FC = () => {
     toggleFavorite(id);
   };
 
-  const handleAddCustomGarba = (newGarba: Garba) => {
-    const updated = [newGarba, ...userGarbas];
-    setUserGarbas(updated);
-    localStorage.setItem(CUSTOM_GARBAS_STORAGE_KEY, JSON.stringify(updated));
-    postNeonGarba(newGarba).catch((e) => console.error('Failed to post custom Garba to Neon:', e));
-    handleSelectGarba(newGarba, 'lyrics');
+  const handleAddCustomGarba = async (newGarba: Garba): Promise<boolean> => {
+    try {
+      const saved = await postGarba(newGarba);
+      setUserGarbas((prev) => [saved, ...prev]);
+      handleSelectGarba(saved, 'lyrics');
+      return true;
+    } catch (e) {
+      alert(`Could not publish your Garba: ${(e as Error).message}`);
+      return false;
+    }
   };
 
   return (
