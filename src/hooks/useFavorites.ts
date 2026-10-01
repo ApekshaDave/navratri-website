@@ -4,9 +4,9 @@ export const useFavorites = () => {
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('navswar_favorites');
-      return saved ? JSON.parse(saved) : ['amba-abhay-pad-dayini'];
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return ['amba-abhay-pad-dayini'];
+      return [];
     }
   });
 
