@@ -39,9 +39,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-gradient-to-r from-[#5A0808] via-[#6A0909] to-[#5A0808] border-b border-[#D4AF37]/30 shadow-lg text-[#FFF8ED]">
+    <header className="sticky top-0 z-40 bg-[#5A0808] border-b border-[#D4AF37]/30 shadow-md text-[#FFF7E8]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-16 sm:h-18">
           
           {/* LEFT: Logo & Branding */}
           <button
