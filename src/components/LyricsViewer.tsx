@@ -25,6 +25,16 @@ export const LyricsViewer: React.FC<LyricsViewerProps> = ({
   const { language, setLanguage, t } = useLanguage();
   const [shareModalOpen, setShareModalOpen] = useState(false);
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onBack();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onBack]);
+
   // Active primary title based on current language
   const primaryTitle = garba.title[language] || garba.title.gu;
   const secondaryTitle = language === 'en' ? garba.title.gu : garba.title.en;
