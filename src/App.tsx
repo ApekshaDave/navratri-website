@@ -245,7 +245,7 @@ export const AppContent: React.FC = () => {
             </button>
           </div>
         ) : (
-          <>
+          <div key={activeTab} className="animate-in fade-in duration-300 ease-in-out">
             {activeTab === 'home' && (
               <Home
                 garbas={allGarbas}
@@ -304,7 +304,7 @@ export const AppContent: React.FC = () => {
             )}
 
             {activeTab === 'about' && <AboutPage />}
-          </>
+          </div>
         )}
       </main>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Search, Globe, Menu, X, LogIn, LogOut, ChevronDown } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +24,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
+  const navContainerRef = useRef<HTMLDivElement>(null);
+  const navItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
+
   const navItems = [
     { id: 'home', label: t.nav.home },
     { id: 'garbas', label: t.nav.garbas },
@@ -37,6 +41,28 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'hi', label: 'हिंदी' },
     { id: 'en', label: 'English' },
   ];
+
+  // Update sliding gold line indicator whenever activeTab or window resizes
+  useEffect(() => {
+    const updateIndicator = () => {
+      const activeEl = navItemRefs.current[activeTab];
+      const containerEl = navContainerRef.current;
+      if (activeEl && containerEl) {
+        const activeRect = activeEl.getBoundingClientRect();
+        const containerRect = containerEl.getBoundingClientRect();
+        setIndicatorStyle({
+          left: activeRect.left - containerRect.left,
+          width: activeRect.width,
+        });
+      } else {
+        setIndicatorStyle({ left: 0, width: 0 });
+      }
+    };
+
+    updateIndicator();
+    window.addEventListener('resize', updateIndicator);
+    return () => window.removeEventListener('resize', updateIndicator);
+  }, [activeTab, language, favoritesCount]);
 
   return (
     <header className="sticky top-0 z-40 bg-[#5A0808] border-b border-[#D4AF37]/30 shadow-md text-[#FFF7E8]">
@@ -61,15 +87,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </button>
 
-          {/* CENTER: Text Navigation Links */}
-          <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+          {/* CENTER: Text Navigation Links with Smooth Sliding Golden Underline */}
+          <nav ref={navContainerRef} className="hidden md:flex items-center gap-6 lg:gap-8 relative">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
               return (
                 <button
                   key={item.id}
+                  ref={(el) => {
+                    navItemRefs.current[item.id] = el;
+                  }}
                   onClick={() => setActiveTab(item.id)}
-                  className={`relative py-2 text-sm font-medium tracking-wide transition-colors duration-200 flex items-center gap-1.5 ${
+                  className={`relative py-2 text-sm font-medium tracking-wide transition-colors duration-250 flex items-center gap-1.5 ${
                     isActive
                       ? 'text-[#D4AF37] font-bold'
                       : 'text-[#FFF8ED]/80 hover:text-[#D4AF37]'
@@ -83,14 +112,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {item.badge}
                     </span>
                   )}
-
-                  {/* Active Gold Underline Accent */}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#D4AF37]/40 via-[#D4AF37] to-[#D4AF37]/40 rounded-full animate-in fade-in duration-200" />
-                  )}
                 </button>
               );
             })}
+
+            {/* Smooth Sliding Active Gold Underline Accent */}
+            <span
+              className="absolute bottom-0 h-[2.5px] bg-gradient-to-r from-[#D4AF37]/40 via-[#D4AF37] to-[#D4AF37]/40 rounded-full transition-all duration-300 ease-out pointer-events-none shadow-[0_0_8px_rgba(212,175,55,0.6)]"
+              style={{
+                left: `${indicatorStyle.left}px`,
+                width: `${indicatorStyle.width}px`,
+                opacity: indicatorStyle.width > 0 ? 1 : 0,
+              }}
+            />
           </nav>
 
           {/* RIGHT: Language Selector, Clean Search Icon & Sign In */}
