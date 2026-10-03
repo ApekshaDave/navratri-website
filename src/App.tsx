@@ -65,12 +65,8 @@ export const AppContent: React.FC = () => {
       .catch((err) => console.warn('Failed to load favorite songs:', err));
   }, [missingFavoriteIds]);
 
-  // Auth Gatekeeper Guard: Prevent viewing lyrics or audio unless authenticated
+  // Select Garba: Open lyrics and audio player (public to all users)
   const handleSelectGarba = async (garba: GarbaSummary | Garba, tab: 'lyrics' | 'audio' = 'lyrics') => {
-    if (!isAuthenticated) {
-      openAuthModal('Please sign in with Google to view full Garba lyrics and listen to voice references!');
-      return;
-    }
     if (activeTab !== 'lyrics') setReturnTab(activeTab as ReturnTab);
 
     let full: Garba;
@@ -126,8 +122,8 @@ export const AppContent: React.FC = () => {
       <Navbar
         activeTab={activeTab}
         setActiveTab={(tab) => {
-          if ((tab === 'lyrics' || tab === 'favorites') && !isAuthenticated) {
-            openAuthModal(`Please sign in with Google to access ${tab}!`);
+          if (tab === 'favorites' && !isAuthenticated) {
+            openAuthModal('Please sign in with Google to access your favorite Garbas!');
             return;
           }
           setActiveTab(tab);
